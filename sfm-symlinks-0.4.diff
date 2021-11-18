@@ -1,0 +1,73 @@
+From 07e564f2d61d9a5dac0e657d66d9877a0be612c4 Mon Sep 17 00:00:00 2001
+From: Nikolay Korotkiy <sikmir@gmail.com>
+Date: Thu, 18 Nov 2021 10:48:57 +0300
+Subject: [PATCH] Hide symlinks
+
+* hide symlinks (resolved full name) from files list
+* show full symlink name on bottom status line when actual symlink selected
+---
+ sfm.c | 29 +++++++++++++++--------------
+ 1 file changed, 15 insertions(+), 14 deletions(-)
+
+diff --git a/sfm.c b/sfm.c
+index 3a69586..cea2bc1 100644
+--- a/sfm.c
++++ b/sfm.c
+@@ -286,6 +286,9 @@ print_info(Pane *pane, char *dirsize)
+ {
+ 	char *sz, *ur, *gr, *dt, *prm;
+ 
++	char *rez_pth;
++	char lnk_full[MAX_N];
++
+ 	dt = ecalloc(MAX_DTF, sizeof(char));
+ 
+ 	prm = get_fperm(CURSOR(pane).mode);
+@@ -306,8 +309,17 @@ print_info(Pane *pane, char *dirsize)
+ 		}
+ 	}
+ 
+-	print_status(cstatus, "%02d/%02d %s %s:%s %s %s", pane->hdir,
+-		pane->dirc, prm, ur, gr, dt, sz);
++	if (S_ISLNK(CURSOR(pane).mode) != 0) {
++		rez_pth = ecalloc(MAX_P, sizeof(char));
++		if (realpath(CURSOR(pane).name, rez_pth) != NULL) {
++			snprintf(
++				lnk_full, MAX_N, " ->%s", rez_pth);
++		}
++		free(rez_pth);
++	}
++
++	print_status(cstatus, "%02d/%02d %s %s:%s %s %s%s", pane->hdir,
++		pane->dirc, prm, ur, gr, dt, sz, lnk_full);
+ 
+ 	free(prm);
+ 	free(ur);
+@@ -320,23 +332,12 @@ static void
+ print_row(Pane *pane, size_t entpos, Cpair col)
+ {
+ 	int x, y;
+-	char *full_str, *rez_pth;
+-	char lnk_full[MAX_N];
++	char *full_str;
+ 
+ 	full_str = basename(pane->direntr[entpos].name);
+ 	x = pane->x_srt;
+ 	y = entpos - pane->firstrow + 1;
+ 
+-	if (S_ISLNK(pane->direntr[entpos].mode) != 0) {
+-		rez_pth = ecalloc(MAX_P, sizeof(char));
+-		if (realpath(pane->direntr[entpos].name, rez_pth) != NULL) {
+-			snprintf(
+-				lnk_full, MAX_N, "%s -> %s", full_str, rez_pth);
+-			full_str = lnk_full;
+-		}
+-		free(rez_pth);
+-	}
+-
+ 	printf_tb(x, y, col, "%*.*s", ~hwidth, hwidth, full_str);
+ }
+ 
+-- 
+2.33.1
+

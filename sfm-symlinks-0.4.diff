@@ -1,29 +1,30 @@
-From 07e564f2d61d9a5dac0e657d66d9877a0be612c4 Mon Sep 17 00:00:00 2001
-From: Nikolay Korotkiy <sikmir@gmail.com>
-Date: Thu, 18 Nov 2021 10:48:57 +0300
+From 0285b3f1a874d83c12fd54a278319716289c7137 Mon Sep 17 00:00:00 2001
+From: Nikolay Korotkiy <sikmir@disroot.org>
+Date: Sun, 20 Mar 2022 00:23:03 +0300
 Subject: [PATCH] Hide symlinks
 
 * hide symlinks (resolved full name) from files list
 * show full symlink name on bottom status line when actual symlink selected
 ---
- sfm.c | 29 +++++++++++++++--------------
- 1 file changed, 15 insertions(+), 14 deletions(-)
+ sfm.c | 31 +++++++++++++++++--------------
+ 1 file changed, 17 insertions(+), 14 deletions(-)
 
 diff --git a/sfm.c b/sfm.c
-index 3a69586..cea2bc1 100644
+index 3a69586..819d6f0 100644
 --- a/sfm.c
 +++ b/sfm.c
-@@ -286,6 +286,9 @@ print_info(Pane *pane, char *dirsize)
+@@ -286,6 +286,10 @@ print_info(Pane *pane, char *dirsize)
  {
  	char *sz, *ur, *gr, *dt, *prm;
  
-+	char *rez_pth;
-+	char lnk_full[MAX_N];
++	char *rez_pth, *lnk_full;
++
++	lnk_full = ecalloc(MAX_N, sizeof(char));
 +
  	dt = ecalloc(MAX_DTF, sizeof(char));
  
  	prm = get_fperm(CURSOR(pane).mode);
-@@ -306,8 +309,17 @@ print_info(Pane *pane, char *dirsize)
+@@ -306,37 +310,36 @@ print_info(Pane *pane, char *dirsize)
  		}
  	}
  
@@ -33,7 +34,7 @@ index 3a69586..cea2bc1 100644
 +		rez_pth = ecalloc(MAX_P, sizeof(char));
 +		if (realpath(CURSOR(pane).name, rez_pth) != NULL) {
 +			snprintf(
-+				lnk_full, MAX_N, " ->%s", rez_pth);
++				lnk_full, MAX_N, "->%s", rez_pth);
 +		}
 +		free(rez_pth);
 +	}
@@ -43,7 +44,13 @@ index 3a69586..cea2bc1 100644
  
  	free(prm);
  	free(ur);
-@@ -320,23 +332,12 @@ static void
+ 	free(gr);
+ 	free(dt);
+ 	free(sz);
++	free(lnk_full);
+ }
+ 
+ static void
  print_row(Pane *pane, size_t entpos, Cpair col)
  {
  	int x, y;
@@ -69,5 +76,5 @@ index 3a69586..cea2bc1 100644
  }
  
 -- 
-2.33.1
+2.35.1
 

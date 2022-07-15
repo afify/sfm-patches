@@ -1,0 +1,72 @@
+--- a/config.def.h	2022-07-14 23:35:37.638604114 -0300
++++ b/config.def.h	2022-07-15 00:10:14.058541831 -0300
+@@ -90,6 +90,7 @@
+ 	{ {.key = TB_KEY_ARROW_LEFT},  mvbk,         {.i = 0}        },
+ 	{ {.ch = 'g'},                 mvtop,        {.i = 0}        },
+ 	{ {.ch = 'G'},                 mvbtm,        {.i = 0}        },
++	{ {.ch = 'o'},                 dragon,       {0}             },
+ 	{ {.ch = 'n'},                 crnf,         {0}             },
+ 	{ {.ch = 'N'},                 crnd,         {0}             },
+ 	{ {.ch = 'd'},                 delent,       {0}             },
+@@ -131,6 +132,7 @@
+ 	{ {.ch = 'a'},                 selall,          {0}            },
+ 	{ {.ch = 'y'},                 selynk,          {0}            },
+ 	{ {.ch = 'd'},                 seldel,          {.v = delconf} },
++	{ {.ch = 'o'},                 seldragon,       {0}            },
+ 	{ {.ch = 'q'},                 exit_vmode,      {0}            },
+ 	{ {.ch = 'v'},                 exit_vmode,      {0}            },
+ 	{ {.key = TB_KEY_ESC},         exit_vmode,      {0}            },
+--- a/sfm.c	2022-07-14 23:35:37.641937448 -0300
++++ b/sfm.c	2022-07-15 00:11:26.345206305 -0300
+@@ -169,6 +169,8 @@
+ static void init_files(void);
+ static void free_files(void);
+ static void yank(const Arg *arg);
++static void dragon(const Arg *arg);
++static void seldragon(const Arg *arg);
+ static void rname(const Arg *arg);
+ static void chngo(const Arg *arg);
+ static void chngm(const Arg *arg);
+@@ -1610,6 +1612,42 @@
+ }
+ 
+ static void
++dragon(const Arg *arg)
++{
++        if (cpane->dirc < 1)
++            return;
++
++        char cmd [500];
++        free_files();
++        sel_len = 1;
++        sel_files = ecalloc(sel_len, sizeof(char *));
++        sel_files[0] = ecalloc(MAX_P, sizeof(char));
++        strncpy(sel_files[0], CURSOR(cpane).name, MAX_P);
++        strcpy(cmd, "dragon-drop -i -x ");
++        strcat(cmd, sel_files[0]);
++        system(cmd);
++        print_status(cprompt, "1 file dropped", sel_len);
++}
++
++static void
++seldragon(const Arg *arg)
++{
++        init_files();
++        refresh_pane(cpane);
++        add_hi(cpane, cpane->hdir - 1);
++        char cmd [500];
++        strcpy(cmd, "dragon-drop -i -a ");
++        int n = sel_len;
++        for (int i = 0; i < n; i++){
++            strcat(cmd, sel_files[i]);
++            strcat(cmd, " ");
++        }
++        system(cmd);
++        print_status(cprompt, "%zu files dropped", sel_len);
++        cont_vmode = -1;
++}
++
++static void
+ switch_pane(const Arg *arg)
+ {
+ 	if (cpane->dirc > 0)

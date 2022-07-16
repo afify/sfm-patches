@@ -15,3 +15,4 @@ Adds an option to ignore the leading dot character in 'dotfiles' when sorting th
 
 ## [dragon](sfm-dragon.diff)
 Add a keybind that create a window with selected files to drap and drop on a gui app.
+* Requires [dragon](https://github.com/mwh/dragon)

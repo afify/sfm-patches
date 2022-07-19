@@ -72,3 +72,4 @@
  switch_pane(const Arg *arg)
  {
  	if (cpane->dirc > 0)
+

@@ -13,8 +13,8 @@ Adds an option to ignore the leading dot character in 'dotfiles' when sorting th
 * hide symlinks (resolved full name) from files list
 * show full symlink name on bottom status line when actual symlink selected
 
-## [dragon](sfm-dragon.diff)
-Add a keybind that create a window with selected files to drap and drop on a gui app.
+## [dragon](sfm-dragon-0.4.diff)
+Add a keybind that create a window with selected files to drag and drop on a gui app.
 * Requires [dragon](https://github.com/mwh/dragon)
 
 ## [nerdicons](sfm-nerdicons-0.4.diff)

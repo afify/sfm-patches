@@ -17,6 +17,10 @@ Adds an option to ignore the leading dot character in 'dotfiles' when sorting th
 Add a keybind that create a window with selected files to drag and drop on a gui app.
 * Requires [dragon](https://github.com/mwh/dragon)
 
+## [copypane](sfm-copypane-0.4.diff)
+Add shortcut that allow user to copy current pane to other pane. Useful for navigation
+in nested directories.
+
 ## [nerdicons](sfm-nerdicons-0.4.diff)
 Add files and folders icons.
 * Requires a [Nerd Font](https://www.nerdfonts.com/font-downloads) patched font

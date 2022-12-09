@@ -1,0 +1,74 @@
+From 80ec2b2f0bc4242c9ae9d3c0c2a4296055a60acd Mon Sep 17 00:00:00 2001
+From: Radovan Beler <radovan.beler@student.tuke.sk>
+Date: Fri, 9 Dec 2022 16:43:30 +0100
+Subject: [PATCH] Copy current pane to other pane
+
+* copies current pane to other pane while preserving current pane
+  attributes
+---
+ config.def.h |  1 +
+ sfm.1        |  3 +++
+ sfm.c        | 15 +++++++++++++++
+ 3 files changed, 19 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index 7e7c200..57294f2 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -90,6 +90,7 @@ static Key nkeys[] = {
+ 	{ {.key = TB_KEY_ARROW_LEFT},  mvbk,         {.i = 0}        },
+ 	{ {.ch = 'g'},                 mvtop,        {.i = 0}        },
+ 	{ {.ch = 'G'},                 mvbtm,        {.i = 0}        },
++	{ {.ch = 'C'},                 cppane,       {0}             },
+ 	{ {.ch = 'n'},                 crnf,         {0}             },
+ 	{ {.ch = 'N'},                 crnd,         {0}             },
+ 	{ {.ch = 'd'},                 delent,       {0}             },
+diff --git a/sfm.1 b/sfm.1
+index 788acdf..5a504ae 100644
+--- a/sfm.1
++++ b/sfm.1
+@@ -36,6 +36,9 @@ top
+ .B G
+ bottom
+ .TP
++.B C
++copy (duplicate) current pane to other pane
++.TP
+ .B ctrl+u
+ scroll up
+ .TP
+diff --git a/sfm.c b/sfm.c
+index c7f6db8..21585c5 100644
+--- a/sfm.c
++++ b/sfm.c
+@@ -142,6 +142,7 @@ static void mvbtm(const Arg *arg);
+ static void mvfwd(const Arg *arg);
+ static void mvtop(const Arg *arg);
+ static void bkmrk(const Arg *arg);
++static void cppane(const Arg *arg);
+ static int get_usrinput(char *, size_t, const char *, ...);
+ static int frules(char *);
+ static int spawn(const void *, size_t, const void *, size_t, char *, int);
+@@ -921,6 +922,20 @@ bkmrk(const Arg *arg)
+ 	PERROR(listdir(cpane) < 0);
+ }
+ 
++static void
++cppane(const Arg *arg)
++{
++	(void) arg;
++	int other_idx;
++
++	other_idx = pane_idx ^ 1;
++	strncpy(panes[other_idx].dirn, panes[pane_idx].dirn, MAX_P);
++	panes[other_idx].hdir = panes[pane_idx].hdir;
++	panes[other_idx].firstrow = panes[pane_idx].firstrow;
++	panes[other_idx].parent_row= panes[pane_idx].parent_row;
++	PERROR(listdir(&panes[other_idx]) < 0);
++}
++
+ static int
+ get_usrinput(char *result, size_t max_chars, const char *fmt, ...)
+ {
+-- 
+2.38.1

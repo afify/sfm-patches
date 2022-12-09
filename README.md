@@ -21,6 +21,10 @@ Add a keybind that create a window with selected files to drag and drop on a gui
 Add files and folders icons.
 * Requires a [Nerd Font](https://www.nerdfonts.com/font-downloads) patched font
 
+## [copypane](sfm-copypane-0.4.diff)
+Add shortcut that allow user to copy current pane to other pane. Useful for navigation
+in nested directories.
+
 Note: go to that part of <i>sfm.c</i> code to fix main folders icons to your needs (downloads, pictures...)
 ``` c
 if(strcmp(ex, "own") == 0)  /* downloads */

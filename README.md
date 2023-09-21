@@ -48,3 +48,7 @@ else
     //icon = ex; /* debug */
 ```
 
+
+## [previewfolder](sfm-previewfolder-0.4.diff)
+Makes the right pane be used to preview folders. This way the user can see what is inside a folder without having to "enter" it.
+However, this makes the right pane unusable and so the user can't switch panes anymore.

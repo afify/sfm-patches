@@ -1,0 +1,166 @@
+commit 11035b975f75fbc7915c7303cd1c26a38a6ac41f
+Author: viatatribal <shlover.v@gmail.com>
+Date:   Thu Sep 21 15:57:08 2023 -0300
+
+    Preview folders using right pane
+    
+    This patch allows the right pane to be used to see what is inside any
+    folder the left pane's highlight is currently over. However, this
+    removes the possibility of changing panes, making the left pane the only
+    one the user can move.
+
+diff --git a/config.def.h b/config.def.h
+index 7e7c200..e35b188 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -103,7 +103,6 @@ static Key nkeys[] = {
+ 	{ {.ch = 'P'},                 selmv,        {0}             },
+ 	{ {.ch = 'c'},                 start_change, {0}             },
+ 	{ {.ch = 'b'},                 opnsh,        {0}             },
+-	{ {.key = TB_KEY_SPACE},       switch_pane,  {0}             },
+ 	{ {.key = TB_KEY_CTRL_R},      refresh,      {0}             },
+ 	{ {.ch = '\\'},                bkmrk,        {.v = root}     },
+ 	{ {.ch = '.'},                 toggle_df,    {0}             },
+diff --git a/sfm.c b/sfm.c
+index c7f6db8..941ea3a 100644
+--- a/sfm.c
++++ b/sfm.c
+@@ -118,6 +118,7 @@ static void print_row(Pane *, size_t, Cpair);
+ static void clear(int, int, int, uint16_t);
+ static void clear_status(void);
+ static void clear_pane(Pane *);
++static int dir_preview();
+ static void add_hi(Pane *, size_t);
+ static void rm_hi(Pane *, size_t);
+ static int check_dir(char *);
+@@ -174,7 +175,6 @@ static void chngo(const Arg *arg);
+ static void chngm(const Arg *arg);
+ static void chngf(const Arg *arg);
+ static void dupl(const Arg *arg);
+-static void switch_pane(const Arg *arg);
+ static void quit(const Arg *arg);
+ static void grabkeys(struct tb_event *, Key *, size_t);
+ static void *read_th(void *arg);
+@@ -193,8 +193,8 @@ static void start(void);
+ /* global variables */
+ static pthread_t fsev_thread;
+ static Pane panes[2];
+-static Pane *cpane;
+-static int pane_idx;
++static Pane *cpane = &panes[0];
++static Pane *preview = &panes[1];
+ static char *editor[2];
+ static char fed[] = "vi";
+ static char *shell[2];
+@@ -377,6 +377,17 @@ clear_pane(Pane *pane)
+ 	}
+ }
+ 
++static int
++dir_preview()
++{
++	int is_directory = (panes[Left].direntr[panes[Left].hdir-1].mode & S_IFMT)
++			    == S_IFDIR;
++	if (panes[Left].dirc > 0 && is_directory)
++		strncpy(panes[Right].dirn,
++			panes[Left].direntr[panes[Left].hdir-1].name, MAX_P);
++	return is_directory;
++}
++
+ static void
+ add_hi(Pane *pane, size_t entpos)
+ {
+@@ -815,6 +826,8 @@ mv_ver(const Arg *arg)
+ 	rm_hi(cpane, cpane->hdir - 1);
+ 	cpane->hdir = cpane->hdir - arg->i;
+ 	add_hi(cpane, cpane->hdir - 1);
++	if (dir_preview())
++		listdir(preview);
+ 	print_info(cpane, NULL);
+ }
+ 
+@@ -834,6 +847,8 @@ mvbk(const Arg *arg)
+ 	cpane->firstrow = cpane->parent_firstrow;
+ 	cpane->hdir = cpane->parent_row;
+ 	PERROR(listdir(cpane) < 0);
++	if (dir_preview())
++		listdir(preview);
+ 	cpane->parent_firstrow = 0;
+ 	cpane->parent_row = 1;
+ }
+@@ -854,6 +869,8 @@ mvbtm(const Arg *arg)
+ 		cpane->hdir = cpane->dirc;
+ 		add_hi(cpane, cpane->hdir - 1);
+ 	}
++	if (dir_preview())
++		listdir(preview);
+ 	print_info(cpane, NULL);
+ }
+ 
+@@ -872,6 +889,8 @@ mvfwd(const Arg *arg)
+ 		cpane->hdir = 1;
+ 		cpane->firstrow = 0;
+ 		PERROR(listdir(cpane) < 0);
++		if (dir_preview())
++			listdir(preview);
+ 		break;
+ 	case 1: /* not a directory open file */
+ 		tb_shutdown();
+@@ -904,6 +923,8 @@ mvtop(const Arg *arg)
+ 		add_hi(cpane, cpane->hdir - 1);
+ 		print_info(cpane, NULL);
+ 	}
++	if (dir_preview())
++		listdir(preview);
+ }
+ 
+ static void
+@@ -1609,20 +1630,6 @@ yank(const Arg *arg)
+ 	print_status(cprompt, "1 file is yanked", sel_len);
+ }
+ 
+-static void
+-switch_pane(const Arg *arg)
+-{
+-	if (cpane->dirc > 0)
+-		rm_hi(cpane, cpane->hdir - 1);
+-	cpane = &panes[pane_idx ^= 1];
+-	if (cpane->dirc > 0) {
+-		add_hi(cpane, cpane->hdir - 1);
+-		print_info(cpane, NULL);
+-	} else {
+-		clear_status();
+-	}
+-}
+-
+ static void
+ quit(const Arg *arg)
+ {
+@@ -1891,9 +1898,6 @@ set_panes(void)
+ 	if ((getcwd(cwd, sizeof(cwd)) == NULL))
+ 		strncpy(cwd, home, MAX_P);
+ 
+-	pane_idx = Left; /* cursor pane */
+-	cpane = &panes[pane_idx];
+-
+ 	panes[Left].pane_id = 0;
+ 	panes[Left].x_srt = 2;
+ 	panes[Left].x_end = (twidth / 2) - 1;
+@@ -1911,7 +1915,7 @@ set_panes(void)
+ 	panes[Right].dircol = cpanelr;
+ 	panes[Right].firstrow = 0;
+ 	panes[Right].direntr = ecalloc(0, sizeof(Entry));
+-	strncpy(panes[Right].dirn, home, MAX_P);
++	strncpy(panes[Right].dirn, cwd, MAX_P);
+ 	panes[Right].hdir = 1;
+ 	panes[Right].inotify_wd = -1;
+ 	panes[Right].parent_row = 1;
+@@ -2012,7 +2016,7 @@ start(void)
+ 	PERROR(start_signal() < 0);
+ 	PERROR(fsev_init() < 0);
+ 	PERROR(listdir(&panes[Left]) < 0);
+-	PERROR(listdir(&panes[Right]) < 0);
++	listdir(&panes[Right]);
+ 	tb_present();
+ 
+ 	pthread_create(&fsev_thread, NULL, read_th, NULL);

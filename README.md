@@ -52,3 +52,10 @@ else
 ## [previewfolder](sfm-previewfolder-0.4.diff)
 Makes the right pane be used to preview folders. This way the user can see what is inside a folder without having to "enter" it.
 However, this makes the right pane unusable and so the user can't switch panes anymore.
+
+
+## [autojump](autojump/sfm-autojump-20250104-db66dd0.diff)
+
+Integrates a directory jumper like
+[zoxide](https://github.com/ajeetdsouza/zoxide) into sfm,
+which allows jumping to another directory with the current pane.

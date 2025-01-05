@@ -1,0 +1,125 @@
+From 24d22782b62f68151a250e874be081e0fc659da3 Mon Sep 17 00:00:00 2001
+From: Botond Kalocsai <botond.kalocsai@3dhistech.com>
+Date: Sat, 4 Jan 2025 14:01:20 +0100
+Subject: [PATCH] [feat] add autojump for smart directory navigation
+
+---
+ config.def.h |  4 ++++
+ sfm.1        |  3 +++
+ sfm.c        | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ sfm.h        |  1 +
+ 4 files changed, 52 insertions(+)
+
+diff --git a/config.def.h b/config.def.h
+index a955194..c09778f 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -44,6 +44,8 @@ static const char *chown_cmd[]   = { "chown", "-R" }; /* change file owner and g
+ static const char *chmod_cmd[]   = { "chmod" }; /* change file mode bits */
+ static const char *chflags_cmd[] = { CHFLAG }; /* change file flags */
+ static const char *mv_cmd[]      = { "mv" }; /* move */
++static const char jump_cmd_format[] =
++	"zoxide query -i %s"; /* format script that outputs an absolute dir path */
+ static const char delconf[]      = "yes";
+ 
+ static const size_t rm_cmd_len      = LEN(rm_cmd);
+@@ -52,6 +54,7 @@ static const size_t chown_cmd_len   = LEN(chown_cmd);
+ static const size_t chmod_cmd_len   = LEN(chmod_cmd);
+ static const size_t chflags_cmd_len = LEN(chflags_cmd);
+ static const size_t mv_cmd_len      = LEN(mv_cmd);
++static const size_t jump_cmd_format_len = LEN(jump_cmd_format);
+ static const size_t delconf_len     = LEN(delconf);
+ 
+ /* bookmarks */
+@@ -98,6 +101,7 @@ static Key nkeys[] = {
+ 	{ '}',                 move_cursor,      { .i = +10 }             },
+ 	{ 'l',                 open_entry,       { 0 }                    },
+ 	{ 'h',                 cd_to_parent,     { 0 }                    },
++	{ 'z',                 jump_to_dir,      { 0 }                    },
+ 	{ 'q',                 quit,             { 0 }                    },
+ 	{ 'G',                 move_bottom,      { 0 }                    },
+ 	{ 'g',                 move_top,         { 0 }                    },
+diff --git a/sfm.1 b/sfm.1
+index 91dd025..64dcaa3 100644
+--- a/sfm.1
++++ b/sfm.1
+@@ -42,6 +42,9 @@ scroll up
+ .B ctrl+d
+ scroll down
+ .TP
++.B z
++jump to directory
++.TP
+ .B ctrl+f
+ create new file
+ .TP
+diff --git a/sfm.c b/sfm.c
+index c2e5515..6f5d31b 100644
+--- a/sfm.c
++++ b/sfm.c
+@@ -1062,6 +1062,50 @@ cd_to_parent(const Arg *arg)
+ 	update_screen();
+ }
+ 
++static void
++jump_to_dir(const Arg *arg)
++{
++	char jump_target_dir[PATH_MAX];
++	char jump_cmd[PATH_MAX + jump_cmd_format_len];
++	FILE *jump_cmd_stdout;
++	struct stat jump_target_stat;
++
++	/* construct jump cmd based on user input */
++	if (0 != get_user_input(jump_target_dir, PATH_MAX, "jump to: "))
++		return;
++	snprintf(jump_cmd, PATH_MAX + jump_cmd_format_len, jump_cmd_format,
++			jump_target_dir);
++
++	/* run jump cmd and fetch its output */
++	jump_cmd_stdout = popen(jump_cmd, "r");
++	if(NULL == jump_cmd_stdout)
++		goto cancel_jump_exit;
++	jump_target_dir[0] = '\0';
++	if(NULL != fgets(jump_target_dir, PATH_MAX, jump_cmd_stdout))
++		/* removing trailing newline if present. */
++		jump_target_dir[strcspn(jump_target_dir, "\r\n")] = '\0';
++	pclose(jump_cmd_stdout);
++
++	/* cd to output if possible */
++	if (0 == stat(jump_target_dir, &jump_target_stat) &&
++		S_ISDIR(jump_target_stat.st_mode))
++		strncpy(current_pane->path, jump_target_dir, PATH_MAX);
++	else
++		goto cancel_jump_exit;
++
++	remove_watch(current_pane);
++	set_pane_entries(current_pane);
++	add_watch(current_pane);
++
++	current_pane->current_index = 0;
++	current_pane->start_index = 0;
++	update_screen();
++	return;
++cancel_jump_exit:
++	display_entry_details();
++	update_screen();
++}
++
+ static void
+ create_new_file(const Arg *arg)
+ {
+diff --git a/sfm.h b/sfm.h
+index f38767c..f0d5014 100644
+--- a/sfm.h
++++ b/sfm.h
+@@ -194,6 +194,7 @@ static void cancel_search_highlight(void);
+ static void termb_resize(void);
+ 
+ static void cd_to_parent(const Arg *);
++static void jump_to_dir(const Arg *);
+ static void create_new_file(const Arg *);
+ static void create_new_dir(const Arg *);
+ static void copy_entries(const Arg *);
+-- 
+2.47.1.windows.1
+
